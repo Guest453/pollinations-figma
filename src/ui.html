@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  :root {
+    color-scheme: light dark;
+    --fg: #1a1a1a; --muted: #6a6a6a; --line: rgba(0,0,0,.12);
+    --accent: #7b5cff; --accent-soft: rgba(123,92,255,.12); --danger: #d64545; --ok: #1a9e5c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg: #f0f0f0; --muted: #9a9a9a; --line: rgba(255,255,255,.14); }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 14px; font: 12px/1.45 Inter, "Helvetica Neue", Arial, sans-serif;
+    color: var(--fg); background: transparent;
+  }
+  h1 { font-size: 13px; margin: 0 0 2px; display: flex; align-items: center; gap: 6px; }
+  .sub { color: var(--muted); margin: 0 0 12px; }
+  .sub a { color: var(--accent); cursor: pointer; }
+  label { display: block; font-weight: 600; margin: 10px 0 4px; }
+  select, textarea, input[type="number"] {
+    width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px;
+    background: transparent; color: var(--fg); font: inherit;
+  }
+  textarea { resize: vertical; min-height: 64px; }
+  .row { display: flex; gap: 8px; }
+  .row > div { flex: 1; }
+  button {
+    width: 100%; margin-top: 12px; padding: 9px 12px; border: 0; border-radius: 8px;
+    background: var(--accent); color: #fff; font-weight: 600; font-size: 12.5px; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  button.secondary { background: var(--accent-soft); color: var(--accent); margin-top: 8px; }
+  .card {
+    border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-top: 12px;
+  }
+  .card h2 { font-size: 12px; margin: 0 0 6px; }
+  .usercode {
+    font: 700 20px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 3px;
+    text-align: center; margin: 10px 0; padding: 10px 0;
+    background: var(--accent-soft); border-radius: 8px; user-select: all;
+  }
+  .status { margin-top: 10px; color: var(--muted); min-height: 16px; }
+  .status.busy::before {
+    content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 6px;
+    border: 2px solid var(--accent); border-top-color: transparent; border-radius: 50%;
+    animation: spin .8s linear infinite; vertical-align: -1px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error { color: var(--danger); }
+  .ok { color: var(--ok); }
+  .hidden { display: none; }
+  .foot { margin-top: 14px; color: var(--muted); font-size: 11px; }
+  .foot a { color: var(--accent); cursor: pointer; }
+  input[type="checkbox"] { margin-right: 6px; }
+</style>
+</head>
+<body>
+  <h1>✿ Pollinations</h1>
+  <p class="sub">AI images inside Figma — you pay with your own <a data-url="https://pollinations.ai" class="link">Pollen</a>.</p>
+
+  <!-- Connection card -->
+  <div id="connectCard" class="card">
+    <h2>Connect your Pollinations account</h2>
+    <p class="sub" style="margin:0 0 8px">Bring your own Pollen: sign in once with a device code. No key pasting.</p>
+    <button id="connectBtn">Connect Pollinations account</button>
+    <div id="authBody" class="hidden">
+      <div id="userCode" class="usercode">·····</div>
+      <button id="openAuthBtn" class="secondary">Open approval page</button>
+      <div id="authStatus" class="status">Waiting for approval…</div>
+    </div>
+  </div>
+
+  <!-- Generator -->
+  <div id="generator" class="hidden">
+    <label for="model">Model <span id="modelMeta" style="font-weight:400;color:var(--muted)"></span></label>
+    <select id="model"></select>
+
+    <label for="prompt">Prompt</label>
+    <textarea id="prompt" placeholder="a tiny robot painting a mural, soft light"></textarea>
+
+    <label>Size</label>
+    <div class="row">
+      <div><input id="width" type="number" min="64" max="2048" step="64" value="1024" /></div>
+      <div><input id="height" type="number" min="64" max="2048" step="64" value="1024" /></div>
+    </div>
+
+    <label style="font-weight:400;margin-top:10px">
+      <input type="checkbox" id="frameWithPrompt" /> Add caption frame with prompt
+    </label>
+
+    <button id="generateBtn">Generate image</button>
+
+    <div id="editBox">
+      <button id="editBtn" class="secondary">Edit current selection</button>
+      <div id="selInfo" class="sub" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <div id="status" class="status"></div>
+  <div class="foot">Runs on <a data-url="https://gen.pollinations.ai" class="link">gen.pollinations.ai</a> ·
+    models are billed in Pollen from your account · <a data-url="https://github.com/Guest453/pollinations-figma" class="link">source</a></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var authCode = null;      // DeviceCode from the sandbox
+  var pollTimer = null;     // interval handle
+  var authWindow = null;    // window handle for the approval page
+  var busy = false;
+  var selectionCount = 0;
+  var canExport = false;
+  var connected = false;
+
+  function $(id) { return document.getElementById(id); }
+  function post(msg) { parent.postMessage({ pluginMessage: msg }, "*"); }
+
+  function openUrl(url) { window.open(url, "_blank"); }
+
+  function setStatus(text, cls, isBusy) {
+    var el = $("status");
+    el.textContent = text || "";
+    el.className = "status" + (cls ? " " + cls : "") + (isBusy ? " busy" : "");
+  }
+
+  function setBusy(next) {
+    busy = next;
+    $("generateBtn").disabled = busy || !connected;
+    $("editBtn").disabled = busy || !connected || selectionCount === 0 || !canExport;
+    $("connectBtn").disabled = busy;
+  }
+
+  function showConnected() {
+    connected = true;
+    $("connectCard").classList.add("hidden");
+    $("generator").classList.remove("hidden");
+    post({ type: "load-models" });
+    setBusy(false);
+  }
+
+  function selectionText() {
+    if (selectionCount === 0) return "No selection — generate instead, or select a layer to edit it.";
+    if (!canExport) return selectionCount + " selected (this layer type can't be exported)";
+    return selectionCount + " layer" + (selectionCount === 1 ? "" : "s") + " selected";
+  }
+
+  // ---------- auth (device flow) ----------
+
+  $("connectBtn").onclick = function () {
+    setStatus("Requesting device code…", "", true);
+    $("connectBtn").disabled = true;
+    post({ type: "begin-auth" });
+  };
+
+  $("openAuthBtn").onclick = function () {
+    if (!authCode) return;
+    // Figma's iframe is a real browser context; window.open shows the
+    // approval page where the user confirms the user code.
+    authWindow = window.open(authCode.approvalUrl, "_blank");
+    startPolling();
+  };
+
+  function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(function () {
+      post({ type: "poll-auth", code: authCode });
+    }, 5000);
+  }
+
+  function stopPolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  function authDone() {
+    stopPolling();
+    if (authWindow) { try { authWindow.close(); } catch (e) { /* noop */ } }
+    authWindow = null;
+    showConnected();
+  }
+
+  // ---------- generator ----------
+
+  $("generateBtn").onclick = function () {
+    var prompt = $("prompt").value;
+    if (!prompt.trim()) { setStatus("Enter a prompt first.", "error"); return; }
+    setStatus("Generating… this can take a few seconds (Pollen is spent on success).", "", true);
+    setBusy(true);
+    post({
+      type: "generate",
+      model: $("model").value,
+      prompt: prompt,
+      width: Number($("width").value) || undefined,
+      height: Number($("height").value) || undefined,
+      frameWithPrompt: $("frameWithPrompt").checked,
+    });
+  };
+
+  $("editBtn").onclick = function () {
+    var prompt = $("prompt").value;
+    if (!prompt.trim()) { setStatus("Enter an edit instruction first.", "error"); return; }
+    setStatus("Editing selection…", "", true);
+    setBusy(true);
+    post({
+      type: "edit-selection",
+      model: $("model").value,
+      prompt: prompt,
+      frameWithPrompt: $("frameWithPrompt").checked,
+    });
+  };
+
+  Array.prototype.forEach.call(document.querySelectorAll(".link"), function (el) {
+    el.onclick = function () { openUrl(el.getAttribute("data-url")); };
+  });
+
+  // ---------- messages from the sandbox ----------
+
+  window.onmessage = function (event) {
+    var msg = event.data && event.data.pluginMessage;
+    if (!msg) return;
+    switch (msg.type) {
+      case "boot":
+        if (msg.hasToken) { showConnected(); }
+        else { setBusy(false); }
+        break;
+      case "selection":
+        selectionCount = msg.count;
+        canExport = msg.canExport === true;
+        $("selInfo").textContent = selectionText();
+        if (!busy) { $("editBtn").disabled = !connected || selectionCount === 0 || !canExport; }
+        break;
+      case "models":
+        fillModels(msg.models);
+        setBusy(false);
+        setStatus("", "");
+        break;
+      case "auth-started":
+        authCode = msg.code;
+        $("userCode").textContent = msg.code.user_code;
+        $("authBody").classList.remove("hidden");
+        $("authStatus").textContent = "Waiting for approval…";
+        openUrl(msg.approvalUrl);
+        startPolling();
+        break;
+      case "auth-poll":
+        if (msg.state.status === "done") { setStatus("Connected ✿", "ok"); authDone(); }
+        else if (msg.state.status === "denied") {
+          stopPolling(); setStatus("Authorization declined.", "error"); setBusy(false);
+        } else if (msg.state.status === "expired") {
+          stopPolling(); setStatus("Code expired — connect again.", "error"); setBusy(false);
+        } else if (msg.state.status === "slow_down") {
+          // keep polling; interval self-adjusts on the next cycle
+        }
+        break;
+      case "generated":
+      case "edited":
+        setBusy(false);
+        setStatus("Done — placed in the document ✿", "ok");
+        break;
+      case "status":
+        if (msg.status === "generating") { /* status already set by the button */ }
+        break;
+      case "error":
+        setBusy(false);
+        setStatus(msg.message, "error");
+        break;
+    }
+  };
+
+  function fillModels(models) {
+    var select = $("model");
+    select.innerHTML = "";
+    for (var i = 0; i < models.length; i += 1) {
+      var m = models[i];
+      var option = document.createElement("option");
+      option.value = m.name;
+      option.textContent = m.label;
+      select.appendChild(option);
+    }
+    var editables = models.filter(function (m) { return m.supportsImageInput; });
+    $("modelMeta").textContent =
+      models.length + " models · " + editables.length + " support image input";
+  }
+
+  post({ type: "ready" });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "Pollinations — AI Image Studio",
+  "id": "pollinations-figma",
+  "api": "1.0.0",
+  "main": "code.js",
+  "runtime": "html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": [
+      "https://gen.pollinations.ai",
+      "https://enter.pollinations.ai"
+    ]
+  },
+  "documentAccess": "dynamic-page"
+}
