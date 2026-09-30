@@ -411,8 +411,7 @@
   }
   figma.showUI(__html__, { width: 340, height: 600, themeColors: true });
   figma.on("selectionchange", reportSelection);
-  figma.ui.onmessage = (event) => {
-    const message = event.pluginMessage;
+  figma.ui.onmessage = (message) => {
     if (!message) return;
     void (async () => {
       try {

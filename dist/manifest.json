@@ -1,11 +1,12 @@
 {
-  "name": "Pollinations — AI Image Studio",
+  "name": "Pollinations - AI Image Studio",
   "id": "pollinations-figma",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
-  "runtime": "html",
-  "editorType": ["figma"],
+  "editorType": [
+    "figma"
+  ],
   "networkAccess": {
     "allowedDomains": [
       "https://gen.pollinations.ai",

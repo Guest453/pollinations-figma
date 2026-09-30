@@ -172,8 +172,7 @@ figma.showUI(__html__, { width: 340, height: 600, themeColors: true });
 
 figma.on("selectionchange", reportSelection);
 
-figma.ui.onmessage = (event: { pluginMessage?: unknown }) => {
-  const message = event.pluginMessage as UiMessage | undefined;
+figma.ui.onmessage = (message: UiMessage | undefined) => {
   if (!message) return;
   void (async () => {
     try {
