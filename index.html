@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Pollinations for Figma</title>
+        <meta name="description" content="Generate and edit images inside Figma with Pollinations and your own Pollen." />
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127912;</text></svg>" />
+        <style>
+            :root { --ink: #f4ecf6; --dim: #b9a7c9; --pink: #ff5fa2; --violet: #7a5cff; --panel: #1b1330; }
+            * { box-sizing: border-box; }
+            body { margin: 0; background: radial-gradient(900px 500px at 50% -10%, #2a1a4d, #120b22); color: var(--ink);
+                   font: 16px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif; }
+            main { max-width: 44rem; margin: 0 auto; padding: 3rem 1.4rem 5rem; }
+            h1 { font-size: clamp(2rem, 6vw, 3rem); margin: 0 0 .3rem; background: linear-gradient(120deg, var(--pink), var(--violet));
+                 -webkit-background-clip: text; background-clip: text; color: transparent; }
+            .tag { color: var(--dim); margin: 0 0 1.6rem; }
+            section { background: var(--panel); border: 1px solid #3a2b63; border-radius: 16px; padding: 1.2rem 1.4rem; margin: 1rem 0; }
+            h2 { font-size: 1rem; letter-spacing: .18em; text-transform: uppercase; color: var(--pink); margin: 0 0 .6rem; }
+            a { color: var(--pink); }
+            code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; }
+            pre { background: #0d0819; border: 1px solid #3a2b63; border-radius: 10px; padding: .8rem 1rem; overflow: auto; }
+            ol { padding-left: 1.2rem; }
+            li { margin: .35rem 0; }
+            .cta { display: inline-block; margin: .4rem .4rem 0 0; padding: .7rem 1.1rem; border-radius: 999px; text-decoration: none; font-weight: 700;
+                   background: linear-gradient(120deg, var(--pink), var(--violet)); color: #14082a; }
+            footer { color: var(--dim); font-size: .85rem; margin-top: 2rem; }
+        </style>
+    </head>
+    <body>
+        <main>
+            <h1>Pollinations for Figma</h1>
+            <p class="tag">Generate and edit images on the canvas with Pollinations — paying with your own Pollen.</p>
+
+            <section>
+                <h2>What it does</h2>
+                <ul>
+                    <li><b>Generate</b> — type a prompt, the image lands on a new layer or frame.</li>
+                    <li><b>Edit</b> — send the selection to an image-input model; the result lands on a new layer.</li>
+                    <li>Models come from the <b>live catalog</b> (<code>https://gen.pollinations.ai/image/models</code>).</li>
+                    <li>Sign in with the <b>device flow</b> — no API key is pasted into Figma.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>Install</h2>
+                <ol>
+                    <li>Download this repository.</li>
+                    <li>In Figma: <b>Plugins → Development → Import plugin from manifest…</b></li>
+                    <li>Pick <code>dist/manifest.json</code>.</li>
+                    <li>Run the plugin, connect your Pollinations account, generate.</li>
+                </ol>
+                <a class="cta" href="https://github.com/Guest453/pollinations-figma">Source on GitHub</a>
+                <a class="cta" href="./dist/manifest.json">dist/manifest.json</a>
+            </section>
+
+            <section>
+                <h2>Built folder</h2>
+                <pre>dist/
+  manifest.json   (main: code.js, ui: ui.html)
+  code.js         (calls https://gen.pollinations.ai)
+  ui.html         (panel)</pre>
+            </section>
+
+            <footer>Uses <a href="https://pollinations.ai">Pollinations</a> · pay with your own Pollen via Connect User Wallets.</footer>
+        </main>
+    </body>
+</html>
