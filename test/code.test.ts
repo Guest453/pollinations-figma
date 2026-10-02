@@ -20,7 +20,7 @@ class FigmaGlobal extends MockFigmaHost {
   declare center: { x: number; y: number };
   onSelectionChange: (() => void) | null = null;
   #storage = new Map<string, string>();
-  #messageHandler: ((event: { pluginMessage?: unknown }) => void) | null = null;
+  #messageHandler: ((message: unknown) => void) | null = null;
 
   showUI(html: string, options?: unknown) {
     this.sent.push({ type: "__showUI__", html, options: options as never });
@@ -40,7 +40,7 @@ class FigmaGlobal extends MockFigmaHost {
       postMessage(message: AnyMessage) {
         global.sent.push(message);
       },
-      set onmessage(handler: (event: { pluginMessage?: unknown }) => void) {
+      set onmessage(handler: (message: unknown) => void) {
         global.#messageHandler = handler;
       },
     };
@@ -77,9 +77,9 @@ class FigmaGlobal extends MockFigmaHost {
   }
 
   /** Dispatch a ui → sandbox message and flush the async handler. */
-  async receive(pluginMessage: unknown) {
+  async receive(message: unknown) {
     assert.ok(this.#messageHandler, "ui.onmessage handler was not registered");
-    this.#messageHandler({ pluginMessage });
+    this.#messageHandler(message);
     for (let i = 0; i < 5; i += 1) {
       await new Promise((resolve) => setImmediate(resolve));
     }
